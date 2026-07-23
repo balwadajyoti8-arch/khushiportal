@@ -1,5 +1,5 @@
 {
-  "name": "interview-prep-portal-backend",
+  "name": "interview-preparation-portal-backend",
   "version": "1.0.0",
   "description": "Backend API for Interview Preparation Portal",
   "main": "server.js",
