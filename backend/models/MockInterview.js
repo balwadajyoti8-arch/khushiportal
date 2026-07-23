@@ -7,6 +7,11 @@ const mockInterviewSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    mentorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Mentor',
+      default: null,
+    },
     date: {
       type: String, // format YYYY-MM-DD
       required: [true, 'Please add a date'],
@@ -22,8 +27,12 @@ const mockInterviewSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Scheduled', 'Completed', 'Cancelled'],
-      default: 'Scheduled',
+      enum: ['Pending', 'Approved', 'Rejected', 'Scheduled', 'Completed', 'Cancelled'],
+      default: 'Pending',
+    },
+    rejectionReason: {
+      type: String,
+      default: '',
     },
     feedback: {
       type: String,
@@ -32,6 +41,14 @@ const mockInterviewSchema = new mongoose.Schema(
     score: {
       type: Number, // out of 10 or 100
       default: null,
+    },
+    meetingLink: {
+      type: String,
+      default: '',
+    },
+    studentNotes: {
+      type: String,
+      default: '',
     },
   },
   {

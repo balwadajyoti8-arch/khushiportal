@@ -10,6 +10,7 @@ const Note = require('../models/Note');
 const MockInterview = require('../models/MockInterview');
 const ActivityLog = require('../models/ActivityLog');
 const Topic = require('../models/Topic');
+const Mentor = require('../models/Mentor');
 
 dotenv.config();
 
@@ -305,6 +306,145 @@ const topicsData = [
   { name: 'Aptitude', description: 'Aptitude and reasoning', icon: 'Brain', color: '#8B5CF6', order: 22 },
 ];
 
+// Mentors Data
+const mentorsData = [
+  {
+    name: 'Rahul Sharma',
+    email: 'rahul.sharma@example.com',
+    phone: '+91-9876543210',
+    company: 'Google',
+    designation: 'Senior Software Engineer',
+    expertise: ['Technical', 'System Design'],
+    experience: 8,
+    availability: [
+      {
+        day: 'Monday',
+        timeSlots: [{ start: '10:00', end: '12:00' }, { start: '14:00', end: '16:00' }]
+      },
+      {
+        day: 'Wednesday',
+        timeSlots: [{ start: '10:00', end: '12:00' }, { start: '14:00', end: '16:00' }]
+      },
+      {
+        day: 'Friday',
+        timeSlots: [{ start: '10:00', end: '12:00' }, { start: '14:00', end: '16:00' }]
+      }
+    ],
+    rating: 4.8,
+    totalInterviews: 45,
+    bio: 'Experienced software engineer with expertise in DSA, system design, and cloud technologies.',
+    linkedin: 'https://linkedin.com/in/rahulsharma'
+  },
+  {
+    name: 'Priya Patel',
+    email: 'priya.patel@example.com',
+    phone: '+91-9876543211',
+    company: 'Amazon',
+    designation: 'HR Manager',
+    expertise: ['HR', 'Behavioral'],
+    experience: 6,
+    availability: [
+      {
+        day: 'Tuesday',
+        timeSlots: [{ start: '09:00', end: '11:00' }, { start: '15:00', end: '17:00' }]
+      },
+      {
+        day: 'Thursday',
+        timeSlots: [{ start: '09:00', end: '11:00' }, { start: '15:00', end: '17:00' }]
+      }
+    ],
+    rating: 4.9,
+    totalInterviews: 38,
+    bio: 'HR professional with expertise in behavioral interviews and leadership assessment.',
+    linkedin: 'https://linkedin.com/in/priyapatel'
+  },
+  {
+    name: 'Amit Kumar',
+    email: 'amit.kumar@example.com',
+    phone: '+91-9876543212',
+    company: 'Microsoft',
+    designation: 'Principal Engineer',
+    expertise: ['Technical', 'System Design', 'All'],
+    experience: 12,
+    availability: [
+      {
+        day: 'Monday',
+        timeSlots: [{ start: '11:00', end: '13:00' }, { start: '16:00', end: '18:00' }]
+      },
+      {
+        day: 'Tuesday',
+        timeSlots: [{ start: '11:00', end: '13:00' }, { start: '16:00', end: '18:00' }]
+      },
+      {
+        day: 'Wednesday',
+        timeSlots: [{ start: '11:00', end: '13:00' }, { start: '16:00', end: '18:00' }]
+      },
+      {
+        day: 'Thursday',
+        timeSlots: [{ start: '11:00', end: '13:00' }, { start: '16:00', end: '18:00' }]
+      },
+      {
+        day: 'Friday',
+        timeSlots: [{ start: '11:00', end: '13:00' }, { start: '16:00', end: '18:00' }]
+      }
+    ],
+    rating: 5.0,
+    totalInterviews: 72,
+    bio: 'Seasoned engineer with deep expertise in distributed systems, cloud architecture, and technical interviews.',
+    linkedin: 'https://linkedin.com/in/amitkumar'
+  },
+  {
+    name: 'Sneha Reddy',
+    email: 'sneha.reddy@example.com',
+    phone: '+91-9876543213',
+    company: 'Meta',
+    designation: 'Engineering Manager',
+    expertise: ['Behavioral', 'System Design'],
+    experience: 10,
+    availability: [
+      {
+        day: 'Wednesday',
+        timeSlots: [{ start: '14:00', end: '16:00' }]
+      },
+      {
+        day: 'Saturday',
+        timeSlots: [{ start: '10:00', end: '14:00' }]
+      }
+    ],
+    rating: 4.7,
+    totalInterviews: 28,
+    bio: 'Engineering manager with expertise in system design interviews and behavioral assessment.',
+    linkedin: 'https://linkedin.com/in/snehareddy'
+  },
+  {
+    name: 'Vikram Singh',
+    email: 'vikram.singh@example.com',
+    phone: '+91-9876543214',
+    company: 'Adobe',
+    designation: 'Senior Technical Lead',
+    expertise: ['Technical'],
+    experience: 7,
+    availability: [
+      {
+        day: 'Monday',
+        timeSlots: [{ start: '09:00', end: '11:00' }]
+      },
+      {
+        day: 'Wednesday',
+        timeSlots: [{ start: '09:00', end: '11:00' }]
+      },
+      {
+        day: 'Friday',
+        timeSlots: [{ start: '09:00', end: '11:00' }]
+      }
+    ],
+    rating: 4.6,
+    totalInterviews: 22,
+    bio: 'Technical lead with expertise in frontend development, React, and JavaScript interviews.',
+    linkedin: 'https://linkedin.com/in/vikramsingh'
+  }
+];
+
 // Platforms List
 const platforms = ['LeetCode', 'GeeksforGeeks', 'HackerRank', 'CodeStudio', 'InterviewBit', 'CodeChef'];
 const platformUrls = {
@@ -498,6 +638,7 @@ const runSeed = async () => {
     await Note.deleteMany();
     await MockInterview.deleteMany();
     await ActivityLog.deleteMany();
+    await Mentor.deleteMany();
     console.log('Collections cleared.');
 
     // Seed Users
@@ -565,18 +706,28 @@ const runSeed = async () => {
     await MCQ.insertMany(mcqs);
     console.log('MCQs seeded.');
 
+    // Seed Mentors
+    console.log('Seeding mentors...');
+    await Mentor.insertMany(mentorsData);
+    console.log('Mentors seeded.');
+
     // Add some sample mock interviews for the student
     console.log('Seeding initial mock interviews...');
+    const mentors = await Mentor.find();
+    const firstMentor = mentors[0];
+    
     await MockInterview.create([
       {
         userId: studentUser._id,
+        mentorId: firstMentor._id,
         date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days in future
         time: '14:00',
         type: 'Technical',
-        status: 'Scheduled'
+        status: 'Pending'
       },
       {
         userId: studentUser._id,
+        mentorId: mentors[1]._id,
         date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days in past
         time: '11:00',
         type: 'HR',

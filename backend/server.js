@@ -59,6 +59,7 @@ app.use('/api/notes', require('./routes/noteRoutes'));
 app.use('/api/bookmarks', require('./routes/bookmarkRoutes'));
 app.use('/api/progress', require('./routes/progressRoutes'));
 app.use('/api/topics', require('./routes/topicRoutes'));
+app.use('/api/mentors', require('./routes/mentorRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Basic entry endpoint

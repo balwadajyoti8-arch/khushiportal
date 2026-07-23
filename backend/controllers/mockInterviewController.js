@@ -1,5 +1,9 @@
 const MockInterview = require('../models/MockInterview');
 const ActivityLog = require('../models/ActivityLog');
+const Mentor = require('../models/Mentor');
+const User = require('../models/User');
+const sendEmail = require('../config/email');
+const { mentorInterviewRequestTemplate } = require('../utils/emailTemplates');
 
 // @desc    Get user's mock interviews
 // @route   GET /api/interviews
@@ -22,18 +26,39 @@ exports.getMockInterviews = async (req, res, next) => {
 // @access  Private
 exports.scheduleMockInterview = async (req, res, next) => {
   try {
-    const { date, time, type } = req.body;
+    const { date, time, type, mentorId, studentNotes } = req.body;
 
     if (!date || !time || !type) {
       res.status(400);
       throw new Error('Please provide date, time, and interview type');
     }
 
+    // Find available mentors based on interview type and availability
+    let selectedMentor = null;
+    
+    if (mentorId) {
+      // If specific mentor is selected
+      selectedMentor = await Mentor.findById(mentorId);
+    } else {
+      // Auto-select available mentor based on expertise
+      selectedMentor = await Mentor.findOne({
+        expertise: { $in: [type, 'All'] },
+        isActive: true,
+      }).sort({ rating: -1, totalInterviews: 1 });
+    }
+
+    if (!selectedMentor) {
+      res.status(404);
+      throw new Error('No available mentor found for this interview type');
+    }
+
     const interview = await MockInterview.create({
       userId: req.user.id,
+      mentorId: selectedMentor._id,
       date,
       time,
       type,
+      studentNotes: studentNotes || '',
     });
 
     await ActivityLog.create({
@@ -42,9 +67,27 @@ exports.scheduleMockInterview = async (req, res, next) => {
       details: `Scheduled ${type} Interview on ${date} at ${time}`,
     });
 
+    // Send email to mentor
+    const user = await User.findById(req.user.id);
+    const emailHtml = mentorInterviewRequestTemplate(
+      user.name,
+      user.email,
+      date,
+      time,
+      type,
+      studentNotes
+    );
+
+    await sendEmail({
+      to: selectedMentor.email,
+      subject: '🎓 New Mock Interview Request',
+      html: emailHtml,
+    });
+
     res.status(201).json({
       success: true,
       data: interview,
+      message: 'Interview scheduled and notification sent to mentor',
     });
   } catch (error) {
     next(error);

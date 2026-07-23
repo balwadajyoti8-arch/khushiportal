@@ -22,12 +22,18 @@ const MockInterviews = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [type, setType] = useState('Technical');
+  const [selectedMentor, setSelectedMentor] = useState('');
+  const [studentNotes, setStudentNotes] = useState('');
   const [showScheduleForm, setShowScheduleForm] = useState(false);
 
   // Reschedule Form states
   const [rescheduleItem, setRescheduleItem] = useState(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+
+  // Mentors list
+  const [mentors, setMentors] = useState([]);
+  const [loadingMentors, setLoadingMentors] = useState(false);
 
   const fetchInterviews = async () => {
     setLoading(true);
@@ -43,8 +49,23 @@ const MockInterviews = () => {
     }
   };
 
+  const fetchMentors = async () => {
+    setLoadingMentors(true);
+    try {
+      const res = await api.get('/mentors');
+      if (res.data.success) {
+        setMentors(res.data.data);
+      }
+    } catch (err) {
+      toast.error('Failed to load mentors');
+    } finally {
+      setLoadingMentors(false);
+    }
+  };
+
   useEffect(() => {
     fetchInterviews();
+    fetchMentors();
   }, []);
 
   const handleSchedule = async (e) => {
@@ -52,11 +73,19 @@ const MockInterviews = () => {
     if (!date || !time || !type) return;
 
     try {
-      const res = await api.post('/interviews', { date, time, type });
+      const res = await api.post('/interviews', { 
+        date, 
+        time, 
+        type, 
+        mentorId: selectedMentor || null,
+        studentNotes 
+      });
       if (res.data.success) {
-        toast.success('Mock interview scheduled successfully!');
+        toast.success('Mock interview request submitted! Mentor will review and approve.');
         setDate('');
         setTime('');
+        setSelectedMentor('');
+        setStudentNotes('');
         setShowScheduleForm(false);
         fetchInterviews();
       }
@@ -307,6 +336,39 @@ const MockInterviews = () => {
                   <option value="Behavioral">Behavioral (Leadership)</option>
                   <option value="System Design">System Design</option>
                 </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">
+                  Select Mentor (Optional)
+                </label>
+                <select
+                  value={selectedMentor}
+                  onChange={(e) => setSelectedMentor(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-bg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                  disabled={loadingMentors}
+                >
+                  <option value="">Auto-select available mentor</option>
+                  {mentors.map(mentor => (
+                    <option key={mentor._id} value={mentor._id}>
+                      {mentor.name} - {mentor.company} ({mentor.expertise.join(', ')})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400">Leave empty to auto-select based on availability</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider block">
+                  Notes for Mentor (Optional)
+                </label>
+                <textarea
+                  value={studentNotes}
+                  onChange={(e) => setStudentNotes(e.target.value)}
+                  placeholder="Any specific topics you'd like to focus on..."
+                  rows="3"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-bg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none transition"
+                />
               </div>
             </div>
 
