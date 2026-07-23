@@ -8,16 +8,16 @@ const {
   deleteTopic,
   updateTopicCount,
 } = require('../controllers/topicController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Public routes
 router.get('/', getTopics);
 router.get('/:id', getTopic);
 
 // Admin only routes
-router.post('/', protect, admin, createTopic);
-router.put('/:id', protect, admin, updateTopic);
-router.delete('/:id', protect, admin, deleteTopic);
-router.put('/:id/update-count', protect, admin, updateTopicCount);
+router.post('/', protect, authorize('admin'), createTopic);
+router.put('/:id', protect, authorize('admin'), updateTopic);
+router.delete('/:id', protect, authorize('admin'), deleteTopic);
+router.put('/:id/update-count', protect, authorize('admin'), updateTopicCount);
 
 module.exports = router;

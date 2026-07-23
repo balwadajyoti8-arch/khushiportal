@@ -12,7 +12,7 @@ const {
   updateMentor,
   deleteMentor,
 } = require('../controllers/mentorController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Public routes
 router.get('/', getMentors);
@@ -26,8 +26,8 @@ router.put('/interviews/:id/reject', protect, rejectInterviewRequest);
 router.put('/interviews/:id/complete', protect, completeInterview);
 
 // Admin only routes
-router.post('/', protect, admin, createMentor);
-router.put('/:id', protect, admin, updateMentor);
-router.delete('/:id', protect, admin, deleteMentor);
+router.post('/', protect, authorize('admin'), createMentor);
+router.put('/:id', protect, authorize('admin'), updateMentor);
+router.delete('/:id', protect, authorize('admin'), deleteMentor);
 
 module.exports = router;
