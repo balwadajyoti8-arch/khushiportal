@@ -31,6 +31,7 @@ const AdminDashboard = () => {
   const [questions, setQuestions] = useState([]);
   const [mcqs, setMcqs] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [mentors, setMentors] = useState([]);
 
   // Modals / Form states
   const [showQuestionModal, setShowQuestionModal] = useState(false);
@@ -61,6 +62,20 @@ const AdminDashboard = () => {
   const [mcqTopic, setMcqTopic] = useState('OS');
   const [mcqDiff, setMcqDiff] = useState('Medium');
   const [mcqExplain, setMcqExplain] = useState('');
+
+  // Mentor Modal state
+  const [showMentorModal, setShowMentorModal] = useState(false);
+  const [activeMentor, setActiveMentor] = useState(null);
+  const [mName, setMName] = useState('');
+  const [mEmail, setMEmail] = useState('');
+  const [mPhone, setMPhone] = useState('');
+  const [mCompany, setMCompany] = useState('');
+  const [mDesignation, setMDesignation] = useState('');
+  const [mExpertise, setMExpertise] = useState([]);
+  const [mExperience, setMExperience] = useState('');
+  const [mBio, setMBio] = useState('');
+  const [mLinkedin, setMLinkedin] = useState('');
+  const [mRating, setMRating] = useState('4.5');
 
   const topics = [
     'Arrays', 'Strings', 'Linked List', 'Stack', 'Queue', 'Trees', 'Graphs',
@@ -101,6 +116,9 @@ const AdminDashboard = () => {
       } else if (tabName === 'Users') {
         const res = await api.get('/admin/users');
         if (res.data.success) setUsers(res.data.data);
+      } else if (tabName === 'Mentors') {
+        const res = await api.get('/mentors');
+        if (res.data.success) setMentors(res.data.data);
       }
     } catch (err) {
       toast.error(`Failed to load ${tabName} data`);
@@ -313,6 +331,87 @@ const AdminDashboard = () => {
   };
 
   // ==========================================
+  // MENTOR MANAGEMENT ACTIONS
+  // ==========================================
+
+  const handleOpenMentorModal = (mentor = null) => {
+    setActiveMentor(mentor);
+    if (mentor) {
+      setMName(mentor.name);
+      setMEmail(mentor.email);
+      setMPhone(mentor.phone);
+      setMCompany(mentor.company);
+      setMDesignation(mentor.designation);
+      setMExpertise(mentor.expertise || []);
+      setMExperience(mentor.experience);
+      setMBio(mentor.bio);
+      setMLinkedin(mentor.linkedin);
+      setMRating(mentor.rating);
+    } else {
+      setMName('');
+      setMEmail('');
+      setMPhone('');
+      setMCompany('');
+      setMDesignation('');
+      setMExpertise([]);
+      setMExperience('');
+      setMBio('');
+      setMLinkedin('');
+      setMRating('4.5');
+    }
+    setShowMentorModal(true);
+  };
+
+  const handleSaveMentor = async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: mName,
+      email: mEmail,
+      phone: mPhone,
+      company: mCompany,
+      designation: mDesignation,
+      expertise: mExpertise,
+      experience: Number(mExperience),
+      bio: mBio,
+      linkedin: mLinkedin,
+      rating: Number(mRating),
+    };
+    try {
+      const res = activeMentor
+        ? await api.put(`/mentors/${activeMentor._id}`, payload)
+        : await api.post('/mentors', payload);
+      if (res.data.success) {
+        toast.success(activeMentor ? 'Mentor updated' : 'Mentor created');
+        setShowMentorModal(false);
+        loadTabData('Mentors');
+      }
+    } catch (err) {
+      toast.error('Failed to save mentor');
+    }
+  };
+
+  const handleDeleteMentor = async (id) => {
+    if (!window.confirm('Delete this mentor?')) return;
+    try {
+      const res = await api.delete(`/mentors/${id}`);
+      if (res.data.success) {
+        toast.success('Mentor deleted');
+        loadTabData('Mentors');
+      }
+    } catch (err) {
+      toast.error('Failed to delete mentor');
+    }
+  };
+
+  const handleExpertiseToggle = (expertise) => {
+    if (mExpertise.includes(expertise)) {
+      setMExpertise(mExpertise.filter(e => e !== expertise));
+    } else {
+      setMExpertise([...mExpertise, expertise]);
+    }
+  };
+
+  // ==========================================
   // USER CONTROL ACTIONS
   // ==========================================
 
@@ -359,7 +458,7 @@ const AdminDashboard = () => {
 
       {/* ADMIN TABS NAVIGATION */}
       <div className="flex flex-wrap gap-2 border-b border-gray-250 dark:border-dark-border pb-1">
-        {['Overview', 'Questions', 'MCQs', 'Companies', 'Users'].map((tab) => (
+        {['Overview', 'Questions', 'MCQs', 'Companies', 'Users', 'Mentors'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -669,6 +768,74 @@ const AdminDashboard = () => {
                           onClick={() => handleDeleteUser(u._id)}
                           className="p-1.5 border hover:bg-rose-500/5 text-rose-500 rounded-xl transition"
                           title="Delete User"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MENTORS PANEL */}
+      {activeTab === 'Mentors' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-base">Interview Mentors ({mentors.length})</h3>
+            <button
+              onClick={() => handleOpenMentorModal(null)}
+              className="flex items-center gap-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl shadow transition"
+            >
+              <Plus size={14} /> Add Mentor
+            </button>
+          </div>
+          <div className="bg-white dark:bg-dark-card border border-gray-150 dark:border-dark-border rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-55/50 dark:bg-dark-card/50 text-slate-500 dark:text-gray-400 font-bold border-b border-gray-100 dark:border-dark-border">
+                  <tr>
+                    <th className="px-6 py-3.5">Name</th>
+                    <th className="px-6 py-3.5">Company</th>
+                    <th className="px-6 py-3.5">Designation</th>
+                    <th className="px-6 py-3.5">Expertise</th>
+                    <th className="px-6 py-3.5">Rating</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-dark-border">
+                  {mentors.map((m) => (
+                    <tr key={m._id} className="hover:bg-gray-50/50 dark:hover:bg-dark-card/50 transition">
+                      <td className="px-6 py-3.5 font-bold">{m.name}</td>
+                      <td className="px-6 py-3.5">{m.company}</td>
+                      <td className="px-6 py-3.5 text-xs">{m.designation}</td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex gap-1 flex-wrap">
+                          {m.expertise?.map((exp, idx) => (
+                            <span key={idx} className="bg-primary-500/10 text-primary-500 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                              {exp}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="text-amber-500 font-bold text-xs">⭐ {m.rating}</span>
+                      </td>
+                      <td className="px-6 py-3.5 text-right space-x-2">
+                        <button
+                          onClick={() => handleOpenMentorModal(m)}
+                          className="p-1.5 border hover:bg-gray-100 dark:hover:bg-dark-card text-slate-500 dark:text-gray-400 rounded-lg transition"
+                          title="Edit"
+                        >
+                          <Edit size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMentor(m._id)}
+                          className="p-1.5 border hover:bg-rose-500/5 text-rose-500 rounded-lg transition"
+                          title="Delete"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -994,6 +1161,161 @@ const AdminDashboard = () => {
                 className="px-5 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow transition"
               >
                 Save MCQ
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MENTOR ADD/EDIT MODAL */}
+      {showMentorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMentorModal(false)}></div>
+          <form 
+            onSubmit={handleSaveMentor}
+            className="bg-white dark:bg-dark-card border border-gray-150 dark:border-dark-border rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
+          >
+            <h3 className="font-extrabold text-lg flex items-center gap-2">
+              <Users size={20} className="text-primary-500" /> {activeMentor ? 'Edit Mentor' : 'Add Mentor'}
+            </h3>
+            
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-500 block uppercase">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={mName}
+                  onChange={(e) => setMName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-500 block uppercase">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={mEmail}
+                    onChange={(e) => setMEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-500 block uppercase">Phone</label>
+                  <input
+                    type="text"
+                    value={mPhone}
+                    onChange={(e) => setMPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-500 block uppercase">Company</label>
+                  <input
+                    type="text"
+                    required
+                    value={mCompany}
+                    onChange={(e) => setMCompany(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-500 block uppercase">Designation</label>
+                  <input
+                    type="text"
+                    required
+                    value={mDesignation}
+                    onChange={(e) => setMDesignation(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-500 block uppercase">Experience (Years)</label>
+                  <input
+                    type="number"
+                    required
+                    value={mExperience}
+                    onChange={(e) => setMExperience(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-500 block uppercase">Rating (1-5)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max="5"
+                    required
+                    value={mRating}
+                    onChange={(e) => setMRating(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-500 block uppercase">Expertise (Click to select)</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Technical', 'HR', 'Behavioral', 'System Design', 'All'].map((exp) => (
+                    <button
+                      key={exp}
+                      type="button"
+                      onClick={() => handleExpertiseToggle(exp)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        mExpertise.includes(exp)
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {exp}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-500 block uppercase">LinkedIn Profile</label>
+                <input
+                  type="url"
+                  value={mLinkedin}
+                  onChange={(e) => setMLinkedin(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-500 block uppercase">Bio</label>
+                <textarea
+                  value={mBio}
+                  onChange={(e) => setMBio(e.target.value)}
+                  rows={3}
+                  className="w-full p-2.5 border border-gray-250 dark:border-dark-border bg-white dark:bg-dark-bg rounded-xl focus:outline-none"
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMentorModal(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border hover:bg-gray-50 dark:hover:bg-dark-card/50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow transition"
+              >
+                Save Mentor
               </button>
             </div>
           </form>
