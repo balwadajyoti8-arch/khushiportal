@@ -115,6 +115,8 @@ exports.scheduleMockInterview = async (req, res, next) => {
     try {
       const user = await User.findById(req.user.id);
       if (user) {
+        console.log('Preparing email to mentor:', selectedMentor.email);
+        console.log('From user:', user.name, user.email);
         const emailHtml = mentorInterviewRequestTemplate(
           user.name,
           user.email,
@@ -124,11 +126,19 @@ exports.scheduleMockInterview = async (req, res, next) => {
           studentNotes
         );
 
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: selectedMentor.email,
           subject: '🎓 New Mock Interview Request',
           html: emailHtml,
         });
+
+        if (emailResult.success) {
+          console.log('Email sent successfully to mentor:', selectedMentor.email);
+        } else {
+          console.error('Email sending failed:', emailResult.error);
+        }
+      } else {
+        console.error('User not found for email sending');
       }
     } catch (emailError) {
       console.error('Failed to send email:', emailError.message);
