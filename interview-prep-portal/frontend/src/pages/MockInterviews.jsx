@@ -70,7 +70,12 @@ const MockInterviews = () => {
 
   const handleSchedule = async (e) => {
     e.preventDefault();
-    if (!date || !time || !type) return;
+    if (!date || !time || !type) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    console.log('Scheduling interview with data:', { date, time, type, mentorId: selectedMentor || null, studentNotes });
 
     try {
       const res = await api.post('/interviews', { 
@@ -80,6 +85,7 @@ const MockInterviews = () => {
         mentorId: selectedMentor || null,
         studentNotes 
       });
+      console.log('Schedule response:', res.data);
       if (res.data.success) {
         toast.success('Mock interview request submitted! Mentor will review and approve.');
         setDate('');
@@ -88,8 +94,12 @@ const MockInterviews = () => {
         setStudentNotes('');
         setShowScheduleForm(false);
         fetchInterviews();
+      } else {
+        toast.error(res.data.message || 'Failed to schedule interview');
       }
     } catch (err) {
+      console.error('Schedule error:', err);
+      console.error('Error response:', err.response?.data);
       toast.error(err.response?.data?.message || 'Failed to schedule interview');
     }
   };
@@ -342,6 +352,7 @@ const MockInterviews = () => {
                   <option value="HR">HR & Management</option>
                   <option value="Behavioral">Behavioral (Leadership)</option>
                   <option value="System Design">System Design</option>
+                  <option value="All">All Types</option>
                 </select>
               </div>
 

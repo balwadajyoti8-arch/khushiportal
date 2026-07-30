@@ -23,7 +23,7 @@ const mockInterviewSchema = new mongoose.Schema(
     type: {
       type: String,
       required: [true, 'Please select interview type'],
-      enum: ['Technical', 'HR', 'Behavioral', 'System Design'],
+      enum: ['Technical', 'HR', 'Behavioral', 'System Design', 'All'],
     },
     status: {
       type: String,

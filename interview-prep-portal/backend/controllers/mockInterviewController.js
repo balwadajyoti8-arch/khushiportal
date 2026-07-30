@@ -26,11 +26,25 @@ exports.getMockInterviews = async (req, res, next) => {
 // @access  Private
 exports.scheduleMockInterview = async (req, res, next) => {
   try {
+    console.log('Schedule interview request received:', req.body);
+    
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      console.log('User not authenticated');
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
     const { date, time, type, mentorId, studentNotes } = req.body;
 
     if (!date || !time || !type) {
-      res.status(400);
-      throw new Error('Please provide date, time, and interview type');
+      console.log('Validation failed: missing required fields');
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide date, time, and interview type'
+      });
     }
 
     // Find available mentors based on interview type and availability
@@ -38,18 +52,23 @@ exports.scheduleMockInterview = async (req, res, next) => {
     
     if (mentorId) {
       // If specific mentor is selected
+      console.log('Looking for specific mentor:', mentorId);
       selectedMentor = await Mentor.findById(mentorId);
     } else {
       // Auto-select available mentor based on expertise
+      console.log('Auto-selecting mentor for type:', type);
       selectedMentor = await Mentor.findOne({
         expertise: { $in: [type, 'All'] },
         isActive: true,
       }).sort({ rating: -1, totalInterviews: 1 });
     }
 
+    console.log('Selected mentor:', selectedMentor ? selectedMentor.name : 'None');
+
     if (!selectedMentor) {
       // Self-healing: if no mentors exist in DB, auto-create a default coordinator
       const mentorCount = await Mentor.countDocuments();
+      console.log('No mentor found. Total mentors in DB:', mentorCount);
       if (mentorCount === 0) {
         console.log('No mentors found. Auto-creating default mock coordinator...');
         selectedMentor = await Mentor.create({
@@ -62,8 +81,11 @@ exports.scheduleMockInterview = async (req, res, next) => {
           isActive: true,
         });
       } else {
-        res.status(404);
-        throw new Error('No active mentor found matching this interview type');
+        console.log('Mentors exist but none match criteria');
+        return res.status(404).json({
+          success: false,
+          message: 'No active mentor found matching this interview type'
+        });
       }
     }
 
@@ -76,28 +98,41 @@ exports.scheduleMockInterview = async (req, res, next) => {
       studentNotes: studentNotes || '',
     });
 
-    await ActivityLog.create({
-      userId: req.user.id,
-      actionType: 'Scheduled Interview',
-      details: `Scheduled ${type} Interview on ${date} at ${time}`,
-    });
+    console.log('Interview created successfully:', interview._id);
 
-    // Send email to mentor
-    const user = await User.findById(req.user.id);
-    const emailHtml = mentorInterviewRequestTemplate(
-      user.name,
-      user.email,
-      date,
-      time,
-      type,
-      studentNotes
-    );
+    // Create activity log (non-critical, don't fail if this errors)
+    try {
+      await ActivityLog.create({
+        userId: req.user.id,
+        actionType: 'Scheduled Interview',
+        details: `Scheduled ${type} Interview on ${date} at ${time}`,
+      });
+    } catch (logError) {
+      console.error('Failed to create activity log:', logError.message);
+    }
 
-    await sendEmail({
-      to: selectedMentor.email,
-      subject: '🎓 New Mock Interview Request',
-      html: emailHtml,
-    });
+    // Send email to mentor (non-critical, don't fail if this errors)
+    try {
+      const user = await User.findById(req.user.id);
+      if (user) {
+        const emailHtml = mentorInterviewRequestTemplate(
+          user.name,
+          user.email,
+          date,
+          time,
+          type,
+          studentNotes
+        );
+
+        await sendEmail({
+          to: selectedMentor.email,
+          subject: '🎓 New Mock Interview Request',
+          html: emailHtml,
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -114,21 +149,35 @@ exports.scheduleMockInterview = async (req, res, next) => {
 // @access  Private
 exports.cancelMockInterview = async (req, res, next) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
     const interview = await MockInterview.findOne({ _id: req.params.id, userId: req.user.id });
 
     if (!interview) {
-      res.status(404);
-      throw new Error('Interview not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
     }
 
     interview.status = 'Cancelled';
     await interview.save();
 
-    await ActivityLog.create({
-      userId: req.user.id,
-      actionType: 'Cancelled Interview',
-      details: `Cancelled scheduled ${interview.type} Interview`,
-    });
+    // Create activity log (non-critical)
+    try {
+      await ActivityLog.create({
+        userId: req.user.id,
+        actionType: 'Cancelled Interview',
+        details: `Cancelled scheduled ${interview.type} Interview`,
+      });
+    } catch (logError) {
+      console.error('Failed to create activity log:', logError.message);
+    }
 
     res.status(200).json({
       success: true,
@@ -144,12 +193,21 @@ exports.cancelMockInterview = async (req, res, next) => {
 // @access  Private
 exports.rescheduleMockInterview = async (req, res, next) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
     const { date, time } = req.body;
     const interview = await MockInterview.findOne({ _id: req.params.id, userId: req.user.id });
 
     if (!interview) {
-      res.status(404);
-      throw new Error('Interview not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
     }
 
     interview.date = date || interview.date;
@@ -157,11 +215,16 @@ exports.rescheduleMockInterview = async (req, res, next) => {
     interview.status = 'Scheduled'; // Reset status to Scheduled if it was cancelled
     await interview.save();
 
-    await ActivityLog.create({
-      userId: req.user.id,
-      actionType: 'Rescheduled Interview',
-      details: `Rescheduled ${interview.type} Interview to ${interview.date} at ${interview.time}`,
-    });
+    // Create activity log (non-critical)
+    try {
+      await ActivityLog.create({
+        userId: req.user.id,
+        actionType: 'Rescheduled Interview',
+        details: `Rescheduled ${interview.type} Interview to ${interview.date} at ${interview.time}`,
+      });
+    } catch (logError) {
+      console.error('Failed to create activity log:', logError.message);
+    }
 
     res.status(200).json({
       success: true,
