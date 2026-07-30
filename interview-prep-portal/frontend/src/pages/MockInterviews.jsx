@@ -134,8 +134,8 @@ const MockInterviews = () => {
   };
 
   // Segregate scheduled vs past/cancelled
-  const upcoming = interviews.filter((i) => i.status === 'Scheduled');
-  const past = interviews.filter((i) => i.status === 'Completed' || i.status === 'Cancelled');
+  const upcoming = interviews.filter((i) => ['Scheduled', 'Pending', 'Approved'].includes(i.status));
+  const past = interviews.filter((i) => ['Completed', 'Cancelled', 'Rejected'].includes(i.status));
 
   return (
     <div className="space-y-6">
@@ -187,6 +187,13 @@ const MockInterviews = () => {
                     <div className="flex items-center gap-2.5">
                       <span className="px-2.5 py-0.5 text-xs font-extrabold bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-lg uppercase">
                         {session.type} Mock
+                      </span>
+                      <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-lg ${
+                        session.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                        session.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                        'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                      }`}>
+                        {session.status}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-slate-400 font-medium">
                         <Clock size={12} /> {session.time}

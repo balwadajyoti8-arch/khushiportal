@@ -48,8 +48,23 @@ exports.scheduleMockInterview = async (req, res, next) => {
     }
 
     if (!selectedMentor) {
-      res.status(404);
-      throw new Error('No available mentor found for this interview type');
+      // Self-healing: if no mentors exist in DB, auto-create a default coordinator
+      const mentorCount = await Mentor.countDocuments();
+      if (mentorCount === 0) {
+        console.log('No mentors found. Auto-creating default mock coordinator...');
+        selectedMentor = await Mentor.create({
+          name: 'System Mock Coordinator',
+          email: 'coordinator@interviewportal.com',
+          company: 'PrepPortal Group',
+          designation: 'Technical Evaluator',
+          expertise: ['Technical', 'HR', 'Behavioral', 'System Design', 'All'],
+          experience: 5,
+          isActive: true,
+        });
+      } else {
+        res.status(404);
+        throw new Error('No active mentor found matching this interview type');
+      }
     }
 
     const interview = await MockInterview.create({

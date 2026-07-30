@@ -33,6 +33,8 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [upcomingMock, setUpcomingMock] = useState(null);
+  const [loadingMock, setLoadingMock] = useState(true);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -47,7 +49,24 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
+
+    const fetchMocks = async () => {
+      try {
+        const res = await api.get('/interviews');
+        if (res.data.success) {
+          const list = res.data.data;
+          const firstUpcoming = list.find((i) => ['Scheduled', 'Pending', 'Approved'].includes(i.status));
+          setUpcomingMock(firstUpcoming || null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch interviews for dashboard', err);
+      } finally {
+        setLoadingMock(false);
+      }
+    };
+
     fetchAnalytics();
+    fetchMocks();
   }, []);
 
   if (loading) {
@@ -336,23 +355,42 @@ const Dashboard = () => {
               <Calendar size={18} className="text-blue-500" /> Upcoming Mock
             </h3>
             
-            {/* We mock this dynamically or show schedule CTA */}
-            <div className="p-4 bg-primary-500/5 border border-primary-500/10 rounded-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2.5 py-1 rounded-lg uppercase">
-                  Technical Mock
-                </span>
-                <span className="text-xs text-slate-400">Scheduled</span>
+            {loadingMock ? (
+              <div className="p-4 bg-gray-50 dark:bg-dark-card/50 border border-gray-150 dark:border-dark-border rounded-2xl animate-pulse h-28"></div>
+            ) : upcomingMock ? (
+              <div className="p-4 bg-primary-500/5 border border-primary-500/10 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2.5 py-1 rounded-lg uppercase">
+                    {upcomingMock.type} Mock
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
+                    upcomingMock.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                    upcomingMock.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                    'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                  }`}>
+                    {upcomingMock.status}
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="font-bold text-sm">Placement Preparation Practice Session</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">Interviewer: Allocated Mentor Coordinator</p>
+                </div>
+                <div className="text-xs flex items-center justify-between font-semibold pt-1">
+                  <span>{new Date(upcomingMock.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span>{upcomingMock.time}</span>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="font-bold text-sm">Placement Preparation Mock 1</p>
-                <p className="text-xs text-slate-500 dark:text-gray-400">Interviewer: System Peer</p>
+            ) : (
+              <div className="p-5 border border-dashed border-gray-250 dark:border-dark-border rounded-2xl text-center space-y-2">
+                <p className="text-xs text-slate-400">No mock interviews scheduled</p>
+                <Link
+                  to="/mock-interviews"
+                  className="inline-block px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+                >
+                  Schedule Now
+                </Link>
               </div>
-              <div className="text-xs flex items-center justify-between font-semibold pt-1">
-                <span>July 18, 2026</span>
-                <span>02:00 PM</span>
-              </div>
-            </div>
+            )}
           </div>
 
           <Link
