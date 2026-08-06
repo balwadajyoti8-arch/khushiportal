@@ -111,38 +111,41 @@ exports.scheduleMockInterview = async (req, res, next) => {
       console.error('Failed to create activity log:', logError.message);
     }
 
-    // Send email to mentor (non-critical, don't fail if this errors)
-    try {
-      const user = await User.findById(req.user.id);
-      if (user) {
-        console.log('Preparing email to mentor:', selectedMentor.email);
-        console.log('From user:', user.name, user.email);
-        const emailHtml = mentorInterviewRequestTemplate(
-          user.name,
-          user.email,
-          date,
-          time,
-          type,
-          studentNotes
-        );
+    // Send email to mentor (non-critical, fire and forget)
+    // Don't await to prevent blocking the response
+    setImmediate(async () => {
+      try {
+        const user = await User.findById(req.user.id);
+        if (user) {
+          console.log('Preparing email to mentor:', selectedMentor.email);
+          console.log('From user:', user.name, user.email);
+          const emailHtml = mentorInterviewRequestTemplate(
+            user.name,
+            user.email,
+            date,
+            time,
+            type,
+            studentNotes
+          );
 
-        const emailResult = await sendEmail({
-          to: selectedMentor.email,
-          subject: '🎓 New Mock Interview Request',
-          html: emailHtml,
-        });
+          const emailResult = await sendEmail({
+            to: selectedMentor.email,
+            subject: '🎓 New Mock Interview Request',
+            html: emailHtml,
+          });
 
-        if (emailResult.success) {
-          console.log('Email sent successfully to mentor:', selectedMentor.email);
+          if (emailResult.success) {
+            console.log('Email sent successfully to mentor:', selectedMentor.email);
+          } else {
+            console.error('Email sending failed:', emailResult.error);
+          }
         } else {
-          console.error('Email sending failed:', emailResult.error);
+          console.error('User not found for email sending');
         }
-      } else {
-        console.error('User not found for email sending');
+      } catch (emailError) {
+        console.error('Failed to send email:', emailError.message);
       }
-    } catch (emailError) {
-      console.error('Failed to send email:', emailError.message);
-    }
+    });
 
     res.status(201).json({
       success: true,
