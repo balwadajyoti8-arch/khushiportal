@@ -13,8 +13,7 @@ const questionReferenceSchema = new mongoose.Schema(
       default: [],
     },
     topic: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Topic',
+      type: String,
       required: [true, 'Please add a topic'],
     },
     difficulty: {
