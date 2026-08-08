@@ -76,6 +76,8 @@ const MockInterviews = () => {
     }
 
     console.log('Scheduling interview with data:', { date, time, type, mentorId: selectedMentor || null, studentNotes });
+    console.log('API base URL:', import.meta.env.VITE_API_URL);
+    console.log('Full request URL:', `${import.meta.env.VITE_API_URL || '/api'}/interviews`);
 
     try {
       const res = await api.post('/interviews', { 
@@ -100,7 +102,9 @@ const MockInterviews = () => {
     } catch (err) {
       console.error('Schedule error:', err);
       console.error('Error response:', err.response?.data);
-      toast.error(err.response?.data?.message || 'Failed to schedule interview');
+      console.error('Error status:', err.response?.status);
+      console.error('Error config:', err.config);
+      toast.error(err.response?.data?.message || err.message || 'Failed to schedule interview');
     }
   };
 
