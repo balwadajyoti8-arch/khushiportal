@@ -5,8 +5,9 @@ const isSMTPConfigured = () => {
   return (
     process.env.EMAIL_USER &&
     process.env.EMAIL_USER !== 'your_email@gmail.com' &&
-    process.env.EMAIL_PASS &&
-    process.env.EMAIL_PASS !== 'your_app_password'
+    (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD) &&
+    process.env.EMAIL_PASS !== 'your_app_password' &&
+    process.env.EMAIL_PASSWORD !== 'your_app_password'
   );
 };
 
@@ -21,10 +22,14 @@ const sendEmail = async (options) => {
         service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
+          pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
         },
       });
       console.log(`Using configured Gmail SMTP: ${process.env.EMAIL_USER}`);
+      console.log(`Email configuration check - EMAIL_USER: ${process.env.EMAIL_USER ? 'SET' : 'NOT SET'}`);
+      console.log(`Email configuration check - EMAIL_PASSWORD: ${process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET'}`);
+      console.log(`Email configuration check - EMAIL_PASS: ${process.env.EMAIL_PASS ? 'SET' : 'NOT SET'}`);
+      console.log(`Email configuration check - EMAIL_FROM: ${process.env.EMAIL_FROM || 'NOT SET'}`);
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
       const testAccount = await nodemailer.createTestAccount();
@@ -49,8 +54,21 @@ const sendEmail = async (options) => {
       text: options.text,
     };
 
+    console.log(`Email service called - To: ${options.to}, Subject: ${options.subject}`);
+    
+    // Verify transporter connection before sending
+    if (configured) {
+      try {
+        await transporter.verify();
+        console.log('SMTP connection verified successfully');
+      } catch (verifyError) {
+        console.error('SMTP connection verification failed:', verifyError.message);
+        throw verifyError;
+      }
+    }
+
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: %s', info.messageId);
+    console.log('Email sent successfully: %s', info.messageId);
 
     if (!configured) {
       const previewUrl = nodemailer.getTestMessageUrl(info);

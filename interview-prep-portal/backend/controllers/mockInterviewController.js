@@ -115,10 +115,21 @@ exports.scheduleMockInterview = async (req, res, next) => {
     // Don't await to prevent blocking the response
     setImmediate(async () => {
       try {
+        console.log('Email notification flow started for interview:', interview._id);
+        console.log('Mentor ID:', selectedMentor._id);
+        console.log('Mentor email found in database:', selectedMentor.email ? 'YES' : 'NO');
+        
+        if (!selectedMentor.email) {
+          console.error('Mentor email is missing in database');
+          return;
+        }
+
         const user = await User.findById(req.user.id);
         if (user) {
+          console.log('User found for email:', user.email);
           console.log('Preparing email to mentor:', selectedMentor.email);
           console.log('From user:', user.name, user.email);
+          
           const emailHtml = mentorInterviewRequestTemplate(
             user.name,
             user.email,
@@ -128,6 +139,7 @@ exports.scheduleMockInterview = async (req, res, next) => {
             studentNotes
           );
 
+          console.log('Calling email service...');
           const emailResult = await sendEmail({
             to: selectedMentor.email,
             subject: '🎓 New Mock Interview Request',
@@ -135,15 +147,16 @@ exports.scheduleMockInterview = async (req, res, next) => {
           });
 
           if (emailResult.success) {
-            console.log('Email sent successfully to mentor:', selectedMentor.email);
+            console.log('✅ Email sent successfully to mentor:', selectedMentor.email);
           } else {
-            console.error('Email sending failed:', emailResult.error);
+            console.error('❌ Email sending failed:', emailResult.error);
           }
         } else {
-          console.error('User not found for email sending');
+          console.error('❌ User not found for email sending, user ID:', req.user.id);
         }
       } catch (emailError) {
-        console.error('Failed to send email:', emailError.message);
+        console.error('❌ Failed to send email:', emailError.message);
+        console.error('Email error stack:', emailError.stack);
       }
     });
 
