@@ -2,13 +2,17 @@ const nodemailer = require('nodemailer');
 
 // Helper to check if credentials are set and are not default placeholders
 const isSMTPConfigured = () => {
-  return (
-    process.env.EMAIL_USER &&
-    process.env.EMAIL_USER !== 'your_email@gmail.com' &&
-    (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD) &&
-    process.env.EMAIL_PASS !== 'your_app_password' &&
-    process.env.EMAIL_PASSWORD !== 'your_app_password'
-  );
+  const hasUser = process.env.EMAIL_USER && process.env.EMAIL_USER !== 'your_email@gmail.com';
+  const hasPass = (process.env.EMAIL_PASS && process.env.EMAIL_PASS !== 'your_app_password') || 
+                  (process.env.EMAIL_PASSWORD && process.env.EMAIL_PASSWORD !== 'your_app_password');
+  
+  console.log(`SMTP Config Check - EMAIL_USER: ${hasUser ? 'SET' : 'NOT SET'}`);
+  console.log(`SMTP Config Check - EMAIL_PASS: ${process.env.EMAIL_PASS ? 'SET' : 'NOT SET'}`);
+  console.log(`SMTP Config Check - EMAIL_PASSWORD: ${process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET'}`);
+  console.log(`SMTP Config Check - EMAIL_HOST: ${process.env.EMAIL_HOST || 'NOT SET'}`);
+  console.log(`SMTP Config Check - EMAIL_PORT: ${process.env.EMAIL_PORT || 'NOT SET'}`);
+  
+  return hasUser && hasPass;
 };
 
 // Send email function (resilient to credentials/network issues)
@@ -18,18 +22,20 @@ const sendEmail = async (options) => {
     const configured = isSMTPConfigured();
 
     if (configured) {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
+      const smtpConfig = {
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 465,
+        secure: true, // true for 465, false for other ports
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
         },
-      });
-      console.log(`Using configured Gmail SMTP: ${process.env.EMAIL_USER}`);
-      console.log(`Email configuration check - EMAIL_USER: ${process.env.EMAIL_USER ? 'SET' : 'NOT SET'}`);
-      console.log(`Email configuration check - EMAIL_PASSWORD: ${process.env.EMAIL_PASSWORD ? 'SET' : 'NOT SET'}`);
-      console.log(`Email configuration check - EMAIL_PASS: ${process.env.EMAIL_PASS ? 'SET' : 'NOT SET'}`);
-      console.log(`Email configuration check - EMAIL_FROM: ${process.env.EMAIL_FROM || 'NOT SET'}`);
+      };
+      
+      console.log(`Using SMTP configuration: ${smtpConfig.host}:${smtpConfig.port}`);
+      console.log(`Email user: ${process.env.EMAIL_USER}`);
+      
+      transporter = nodemailer.createTransport(smtpConfig);
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
       const testAccount = await nodemailer.createTestAccount();
