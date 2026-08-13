@@ -22,20 +22,19 @@ const sendEmail = async (options) => {
     const configured = isSMTPConfigured();
 
     if (configured) {
-      const smtpConfig = {
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT) || 465,
-        secure: true, // true for 465, false for other ports
+      // Use Gmail service for better compatibility with Render
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
         },
-      };
+        tls: {
+          rejectUnauthorized: false // Allow self-signed certificates
+        }
+      });
       
-      console.log(`Using SMTP configuration: ${smtpConfig.host}:${smtpConfig.port}`);
-      console.log(`Email user: ${process.env.EMAIL_USER}`);
-      
-      transporter = nodemailer.createTransport(smtpConfig);
+      console.log(`Using Gmail service with user: ${process.env.EMAIL_USER}`);
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
       const testAccount = await nodemailer.createTestAccount();
