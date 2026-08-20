@@ -44,11 +44,17 @@ app.use(
   })
 );
 
-// Rate limiting
+// Rate limiting with skip function for Render
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
   max: 200, // Limit each IP to 200 requests per windowMs
   message: 'Too many requests from this IP, please try again after 10 minutes',
+  skip: (req) => {
+    // Skip rate limiting for Render health checks
+    return req.path === '/' || req.path === '/health';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api', limiter);
 
