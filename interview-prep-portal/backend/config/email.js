@@ -74,6 +74,12 @@ const sendEmail = async (options) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully: %s', info.messageId);
+    console.log('Gmail response details:', {
+      accepted: info.accepted,
+      rejected: info.rejected,
+      envelope: info.envelope,
+      response: info.response
+    });
 
     if (!configured) {
       const previewUrl = nodemailer.getTestMessageUrl(info);
