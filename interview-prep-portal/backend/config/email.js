@@ -35,12 +35,13 @@ const sendEmail = async (options) => {
           rejectUnauthorized: false
         },
         // Force IPv4 connection
+        family: 4, // Force IPv4
         connectionTimeout: 10000,
         greetingTimeout: 5000,
         socketTimeout: 10000
       });
       
-      console.log(`Using explicit SMTP with IPv4: smtp.gmail.com:465`);
+      console.log(`Using explicit SMTP with IPv4 (family: 4): smtp.gmail.com:465`);
       console.log(`Email user: ${process.env.EMAIL_USER}`);
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
