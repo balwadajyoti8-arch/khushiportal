@@ -22,11 +22,11 @@ const sendEmail = async (options) => {
     const configured = isSMTPConfigured();
 
     if (configured) {
-      // Use explicit SMTP configuration with IPv4 to avoid Render IPv6 issues
+      // Use port 587 with STARTTLS for better Render compatibility
       transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false, // STARTTLS
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
@@ -36,12 +36,12 @@ const sendEmail = async (options) => {
         },
         // Force IPv4 connection
         family: 4, // Force IPv4
-        connectionTimeout: 10000,
+        connectionTimeout: 15000,
         greetingTimeout: 5000,
-        socketTimeout: 10000
+        socketTimeout: 15000
       });
       
-      console.log(`Using explicit SMTP with IPv4 (family: 4): smtp.gmail.com:465`);
+      console.log(`Using SMTP with STARTTLS (port 587, IPv4): smtp.gmail.com`);
       console.log(`Email user: ${process.env.EMAIL_USER}`);
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
