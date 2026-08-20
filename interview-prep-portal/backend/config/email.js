@@ -22,11 +22,9 @@ const sendEmail = async (options) => {
     const configured = isSMTPConfigured();
 
     if (configured) {
-      // Use port 587 with STARTTLS for better Render compatibility
+      // Use Gmail service with family: 4 to force IPv4
       transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // STARTTLS
+        service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
@@ -35,13 +33,13 @@ const sendEmail = async (options) => {
           rejectUnauthorized: false
         },
         // Force IPv4 connection
-        family: 4, // Force IPv4
+        family: 4,
         connectionTimeout: 15000,
         greetingTimeout: 5000,
         socketTimeout: 15000
       });
       
-      console.log(`Using SMTP with STARTTLS (port 587, IPv4): smtp.gmail.com`);
+      console.log(`Using Gmail service with IPv4 (family: 4)`);
       console.log(`Email user: ${process.env.EMAIL_USER}`);
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
@@ -69,17 +67,7 @@ const sendEmail = async (options) => {
 
     console.log(`Email service called - To: ${options.to}, Subject: ${options.subject}`);
     
-    // Verify transporter connection before sending
-    if (configured) {
-      try {
-        await transporter.verify();
-        console.log('SMTP connection verified successfully');
-      } catch (verifyError) {
-        console.error('SMTP connection verification failed:', verifyError.message);
-        throw verifyError;
-      }
-    }
-
+    // Skip verification on Render due to IPv6 issues, try direct send
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully: %s', info.messageId);
     console.log('Gmail response details:', {
