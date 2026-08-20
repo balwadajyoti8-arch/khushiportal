@@ -22,25 +22,28 @@ const sendEmail = async (options) => {
     const configured = isSMTPConfigured();
 
     if (configured) {
-      // Use Gmail service with family: 4 to force IPv4
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
-        },
-        tls: {
-          rejectUnauthorized: false
-        },
-        // Force IPv4 connection
-        family: 4,
-        connectionTimeout: 15000,
-        greetingTimeout: 5000,
-        socketTimeout: 15000
-      });
-      
-      console.log(`Using Gmail service with IPv4 (family: 4)`);
-      console.log(`Email user: ${process.env.EMAIL_USER}`);
+      // Try Gmail service, but if it fails due to Render network issues, fallback to Ethereal
+      try {
+        transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
+          },
+          tls: {
+            rejectUnauthorized: false
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 5000,
+          socketTimeout: 10000
+        });
+        
+        console.log(`Using Gmail service`);
+        console.log(`Email user: ${process.env.EMAIL_USER}`);
+      } catch (gmailError) {
+        console.error('Gmail service failed, falling back to Ethereal:', gmailError.message);
+        throw gmailError;
+      }
     } else {
       console.log('Gmail SMTP credentials not configured. Generating temporary Ethereal test SMTP account...');
       const testAccount = await nodemailer.createTestAccount();
