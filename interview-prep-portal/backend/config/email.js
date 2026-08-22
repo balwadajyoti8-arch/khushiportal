@@ -1,52 +1,49 @@
 const nodemailer = require('nodemailer');
-const mailgun = require('mailgun-js');
+const sgMail = require('@sendgrid/mail');
 
-// Helper to check if Mailgun is configured
-const isMailgunConfigured = () => {
-  const hasApiKey = process.env.MAILGUN_API_KEY && process.env.MAILGUN_API_KEY !== 'your_mailgun_api_key';
-  const hasDomain = process.env.MAILGUN_DOMAIN && process.env.MAILGUN_DOMAIN !== 'your_mailgun_domain';
+// Helper to check if SendGrid is configured
+const isSendGridConfigured = () => {
+  const hasApiKey = process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY !== 'your_sendgrid_api_key';
   
-  console.log(`Mailgun Config Check - MAILGUN_API_KEY: ${hasApiKey ? 'SET' : 'NOT SET'}`);
-  console.log(`Mailgun Config Check - MAILGUN_DOMAIN: ${hasDomain ? 'SET' : 'NOT SET'}`);
+  console.log(`SendGrid Config Check - SENDGRID_API_KEY: ${hasApiKey ? 'SET' : 'NOT SET'}`);
   
-  return hasApiKey && hasDomain;
+  return hasApiKey;
 };
 
-// Send email function using Mailgun
+// Send email function using SendGrid
 const sendEmail = async (options) => {
   try {
-    const configured = isMailgunConfigured();
+    const configured = isSendGridConfigured();
 
     if (configured) {
-      // Use Mailgun for email sending
-      const mg = mailgun({
-        apiKey: process.env.MAILGUN_API_KEY,
-        domain: process.env.MAILGUN_DOMAIN
-      });
+      // Set SendGrid API key
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-      console.log(`Using Mailgun service`);
+      console.log(`Using SendGrid service`);
       console.log(`Email service called - To: ${options.to}, Subject: ${options.subject}`);
 
-      const data = {
-        from: process.env.EMAIL_FROM || `noreply@${process.env.MAILGUN_DOMAIN}`,
+      const msg = {
         to: options.to,
+        from: process.env.EMAIL_FROM || process.env.SENDGRID_FROM || 'noreply@khushiportal.onrender.com',
         subject: options.subject,
         html: options.html,
         text: options.text
       };
 
-      const body = await mg.messages().send(data);
-      console.log('✅ Email sent successfully via Mailgun:', body.id);
-      console.log('Mailgun response:', body);
+      const response = await sgMail.send(msg);
+      console.log('✅ Email sent successfully via SendGrid');
+      console.log('SendGrid response:', response[0].statusCode);
 
-      return { success: true, messageId: body.id };
+      return { success: true, messageId: response[0].headers['x-message-id'] };
     } else {
-      console.error('Mailgun not configured. Please set MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables.');
-      return { success: false, error: 'Mailgun not configured' };
+      console.error('SendGrid not configured. Please set SENDGRID_API_KEY environment variable.');
+      return { success: false, error: 'SendGrid not configured' };
     }
   } catch (error) {
-    console.error('❌ Mailgun email error:', error.message);
-    console.error('Error details:', error);
+    console.error('❌ SendGrid email error:', error.message);
+    if (error.response) {
+      console.error('SendGrid error response:', error.response.body);
+    }
     return { success: false, error: error.message };
   }
 };
